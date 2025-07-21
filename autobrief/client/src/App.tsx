@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import NetworkStatus from "@/components/NetworkStatus";
+import DashboardRedirect from "@/components/DashboardRedirect";
 
 // Test Firebase connection in development
 if (import.meta.env.DEV) {
@@ -32,7 +33,13 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 import HomePage from "./components/HomePage";
+
+// Role-based Dashboards
+import EmployeeDashboard from "./pages/EmployeeDashboard";
+import ManagerDashboard from "./pages/ManagerDashboard";
+import CEODashboard from "./pages/CEODashboard";
 
 // Auth Pages
 import Login from "./pages/auth/Login";
@@ -92,9 +99,32 @@ const App = () => {
                 {/* Protected Routes */}
                 <Route path="/dashboard">
                   <ProtectedRoute>
+                    <DashboardRedirect />
+                  </ProtectedRoute>
+                </Route>
+                
+                {/* Standard Dashboard Route */}
+                <Route path="/standard-dashboard">
+                  <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>
                 </Route>
+                
+                {/* Role-based Dashboard Routes */}
+                
+                <Route path="/manager-dashboard">
+                  <ProtectedRoute allowedRoles={['project_manager']}>
+                    <ManagerDashboard />
+                  </ProtectedRoute>
+                </Route>
+                
+                <Route path="/ceo-dashboard">
+                  <ProtectedRoute allowedRoles={['ceo']}>
+                    <CEODashboard />
+                  </ProtectedRoute>
+                </Route>
+                
+                <Route path="/unauthorized" component={Unauthorized} />
                 
                 <Route path="/integrations">
                   <ProtectedRoute>
@@ -141,6 +171,16 @@ const App = () => {
                 <Route path="/support">
                   <ProtectedRoute>
                     <Support />
+                  </ProtectedRoute>
+                </Route>
+                
+                {/* Admin Routes */}
+                <Route path="/admin">
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <div className="p-8">
+                      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+                      <p>This is a placeholder for the admin dashboard.</p>
+                    </div>
                   </ProtectedRoute>
                 </Route>
                 

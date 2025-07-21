@@ -26,6 +26,9 @@ const toastWarning = (message: string) => {
   });
 };
 
+// Define user roles type
+export type UserRole = 'employee' | 'project_manager' | 'ceo' | 'admin';
+
 interface UserProfile {
   uid: string;
   email: string;
@@ -36,18 +39,20 @@ interface UserProfile {
   emailVerified: boolean;
   plan: 'free' | 'pro' | 'enterprise';
   integrations: string[];
+  role: UserRole;
 }
 
 interface AuthContextType {
   currentUser: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signup: (email: string, password: string, displayName: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, displayName: string, role?: UserRole) => Promise<void>;
+  login: (email: string, password: string, role?: UserRole) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  hasRole: (roles: UserRole | UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,6 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const createUserProfile = async (user: User, additionalData: any = {}) => {
+    // Get role from localStorage or use the provided role or default to employee
+    const storedRole = localStorage.getItem('user_role') as UserRole | null;
+    const role = additionalData.role || storedRole || 'employee';
+    
     // Create a local profile without Firestore dependency
     const localProfile: UserProfile = {
       uid: user.uid,
@@ -77,8 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       emailVerified: user.emailVerified,
       plan: 'free',
       integrations: [],
+      role: role, // Use the determined role
       ...additionalData
     };
+    
+    // Store the role in localStorage
+    localStorage.setItem('user_role', role);
+    
     setUserProfile(localProfile);
   };
 
@@ -105,7 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             lastLoginAt: new Date(),
             emailVerified: user.emailVerified,
             plan: 'free',
-            integrations: []
+            integrations: [],
+            role: 'employee' // Default role
           });
         }
       } finally {
@@ -116,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  const signup = async (email: string, password: string, displayName: string) => {
+  const signup = async (email: string, password: string, displayName: string, role: UserRole = 'employee') => {
     const { user } = await createUserWithEmailAndPassword(auth, email, password);
     
     // Update the user's display name
@@ -125,15 +140,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Send email verification
     await sendEmailVerification(user);
     
+    // Store the role in localStorage
+    localStorage.setItem('user_role', role);
+    
     // Create user profile
-    await createUserProfile(user, { displayName });
+    await createUserProfile(user, { displayName, role });
     
     toast.success('Account created successfully! Please verify your email.');
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role: UserRole = 'employee') => {
     const { user } = await signInWithEmailAndPassword(auth, email, password);
-    await createUserProfile(user);
+    await createUserProfile(user, { role }); // Pass the role to createUserProfile
+    
+    // Store the role in localStorage
+    localStorage.setItem('user_role', role);
+    
     toast.success('Welcome back!');
   };
 
@@ -156,6 +178,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut(auth);
     setCurrentUser(null);
     setUserProfile(null);
+    
+    // Clear the role from localStorage
+    localStorage.removeItem('user_role');
+    
     toast.success('Signed out successfully');
   };
 
@@ -177,6 +203,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Helper function to check if user has a specific role or one of multiple roles
+  const hasRole = (roles: UserRole | UserRole[]): boolean => {
+    // Get the role from localStorage or from userProfile
+    const storedRole = localStorage.getItem('user_role') as UserRole | null;
+    const role = userProfile?.role || storedRole;
+    
+    if (!role) return false;
+    
+    if (Array.isArray(roles)) {
+      return roles.includes(role);
+    }
+    
+    return role === roles;
+  };
+
   const value: AuthContextType = {
     currentUser,
     userProfile,
@@ -186,7 +227,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginWithGoogle,
     logout,
     resetPassword,
-    updateUserProfile
+    updateUserProfile,
+    hasRole
   };
 
   return (

@@ -11,8 +11,10 @@ import {
   Activity,
   GitCommit,
   RefreshCw,
-  Settings
+  Settings,
+  ListTodo
 } from "lucide-react";
+import TaskManager from "@/components/TaskManager";
 import { SimpleDraggableDashboard } from "@/components/SimpleDraggableDashboard";
 import { CustomizableDashboard } from "@/components/CustomizableDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -162,9 +164,10 @@ const Dashboard = () => {
 
         {/* Tabs for different views */}
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid grid-cols-2 md:w-[300px] mb-4">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="customize">Customize</TabsTrigger>
+          <TabsList className="grid grid-cols-3 md:w-[400px] mb-4">
+            <TabsTrigger value="dashboard" data-value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="tasks" data-value="tasks">My Tasks</TabsTrigger>
+            <TabsTrigger value="customize" data-value="customize">Customize</TabsTrigger>
           </TabsList>
           
           <TabsContent value="dashboard" className="space-y-6">
@@ -382,6 +385,11 @@ const Dashboard = () => {
           </CardContent>
         </Card>
         
+          </TabsContent>
+          
+          {/* Tasks Tab */}
+          <TabsContent value="tasks" className="space-y-6">
+            <TaskManager />
           </TabsContent>
           
           {/* Customize Tab */}

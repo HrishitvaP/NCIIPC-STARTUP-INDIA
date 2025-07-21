@@ -7,26 +7,44 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowLeft, Moon, Sun } from 'lucide-react';
+import { UserRole } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import autoBriefLogo from "@/assets/autobrief-logo.png";
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('employee');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const { login, loginWithGoogle, currentUser } = useAuth();
+  const { login, loginWithGoogle, currentUser, signup } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (currentUser) {
-      setLocation('/dashboard');
+      // Redirect based on role
+      if (currentUser.uid) {
+        switch (role) {
+          case 'employee':
+            setLocation('/standard-dashboard');
+            break;
+          case 'project_manager':
+            setLocation('/manager-dashboard');
+            break;
+          case 'ceo':
+            setLocation('/ceo-dashboard');
+            break;
+          default:
+            setLocation('/dashboard');
+        }
+      }
     }
-  }, [currentUser, setLocation]);
+  }, [currentUser, setLocation, role]);
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains('dark');
@@ -49,13 +67,45 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
-      await login(email, password);
-      // Add a small delay to ensure auth state is updated
-      setTimeout(() => {
-        setLocation('/dashboard');
-      }, 100);
+      
+      // Force set the role in localStorage first
+      localStorage.setItem('user_role', role);
+      console.log('Setting role in localStorage:', role);
+      
+      // Use login instead of signup for existing users
+      await login(email, password, role);
+      
+      // Direct redirect based on role
+      if (role === 'project_manager') {
+        window.location.href = '/manager-dashboard';
+      } else if (role === 'ceo') {
+        window.location.href = '/ceo-dashboard';
+      } else {
+        window.location.href = '/standard-dashboard';
+      }
+      return; // Stop execution here
     } catch (error: any) {
-      setError(error.message);
+      // If login fails, try to sign up (for demo purposes)
+      try {
+        // Force set the role in localStorage first
+        localStorage.setItem('user_role', role);
+        console.log('Setting role in localStorage (signup):', role);
+        
+        const displayName = email.split('@')[0];
+        await signup(email, password, displayName, role);
+        
+        // Direct redirect based on role
+        if (role === 'project_manager') {
+          window.location.href = '/manager-dashboard';
+        } else if (role === 'ceo') {
+          window.location.href = '/ceo-dashboard';
+        } else {
+          window.location.href = '/standard-dashboard';
+        }
+        return; // Stop execution here
+      } catch (signupError: any) {
+        setError(signupError.message || error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -96,6 +146,8 @@ const Login = () => {
               {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
           </div>
+          
+
           
           <div className="flex items-center justify-center mb-4">
             <img 
@@ -163,6 +215,27 @@ const Login = () => {
                   </button>
                 </div>
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="role">Select Role (Demo)</Label>
+                <Select value={role} onValueChange={(value) => {
+                  setRole(value as UserRole);
+                  // Immediately store in localStorage for debugging
+                  localStorage.setItem('user_role', value);
+                  console.log('Role changed to:', value);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="project_manager">Project Manager</SelectItem>
+                    <SelectItem value="ceo">CEO</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">For demo purposes only. In a real app, roles would be assigned by administrators.</p>
+                <p className="text-xs font-bold text-purple-600">Selected Role: {role} (Stored: {localStorage.getItem('user_role') || 'none'})</p>
+              </div>
 
               <div className="flex items-center justify-between">
                 <Link 
@@ -180,6 +253,22 @@ const Login = () => {
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
+              
+              {role === 'project_manager' && (
+                <div className="mt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    className="w-full border-purple-500 text-purple-600" 
+                    onClick={() => {
+                      localStorage.setItem('user_role', 'project_manager');
+                      window.location.href = '/manager-dashboard';
+                    }}
+                  >
+                    Direct to Manager Dashboard
+                  </Button>
+                </div>
+              )}
             </form>
 
             <div className="relative">

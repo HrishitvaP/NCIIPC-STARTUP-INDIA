@@ -2,17 +2,21 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { UserRole } from '@/contexts/AuthContext';
+import { redirectToDashboard } from '@/utils/redirectUtils';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireEmailVerification?: boolean;
+  allowedRoles?: UserRole[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireEmailVerification = false 
+  requireEmailVerification = false,
+  allowedRoles
 }) => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, userProfile, hasRole } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -20,8 +24,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       setLocation('/auth/login');
     } else if (!loading && requireEmailVerification && currentUser && !currentUser.emailVerified) {
       setLocation('/auth/verify-email');
+    } else if (!loading && currentUser && allowedRoles && userProfile && !hasRole(allowedRoles)) {
+      // Get the role from localStorage or from userProfile
+      const storedRole = localStorage.getItem('user_role');
+      const role = userProfile?.role || storedRole || 'employee';
+      
+      // Use the utility function to force redirect
+      redirectToDashboard(role);
     }
-  }, [currentUser, loading, requireEmailVerification, setLocation]);
+  }, [currentUser, loading, requireEmailVerification, allowedRoles, userProfile, hasRole, setLocation]);
 
   if (loading) {
     return (
@@ -39,6 +50,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireEmailVerification && !currentUser.emailVerified) {
+    return null; // Will redirect via useEffect
+  }
+  
+  // Check role-based access
+  if (allowedRoles && userProfile && !hasRole(allowedRoles)) {
     return null; // Will redirect via useEffect
   }
 

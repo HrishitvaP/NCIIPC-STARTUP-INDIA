@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Moon, Sun, User, Settings, Mail, LogOut, Menu, Home, FileText, Plug, Users, UserCircle, HelpCircle, Brain } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
+import { useDashboardUrl } from "@/hooks/useDashboardUrl";
 import { NetworkStatusBadge } from "@/components/NetworkStatus";
 import autoBriefLogo from "@/assets/autobrief-logo.png";
 import { Link } from "wouter";
@@ -27,6 +28,7 @@ export const DashboardHeader = ({ onThemeToggle, isDarkMode }: DashboardHeaderPr
   const { currentUser, userProfile, logout } = useAuth();
   const { profileData } = useProfile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const dashboardUrl = useDashboardUrl();
 
   const handleSignOut = async () => {
     try {
@@ -60,7 +62,7 @@ export const DashboardHeader = ({ onThemeToggle, isDarkMode }: DashboardHeaderPr
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link to="/dashboard">
+            <Link to={dashboardUrl}>
               <Button variant="ghost" className="text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium relative group">
                 Dashboard
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-purple-600 group-hover:w-full transition-all duration-300"></span>
@@ -122,7 +124,7 @@ export const DashboardHeader = ({ onThemeToggle, isDarkMode }: DashboardHeaderPr
                   
                   <nav className="flex-1 py-6">
                     <div className="space-y-2">
-                      <Link to="/dashboard">
+                      <Link to={dashboardUrl}>
                         <Button 
                           variant="ghost" 
                           className="w-full justify-start h-12 text-base"

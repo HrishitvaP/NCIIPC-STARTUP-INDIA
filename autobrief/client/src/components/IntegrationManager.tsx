@@ -116,7 +116,17 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
       if (event.origin !== window.location.origin) return;
       
       if (event.data.type === 'OAUTH_SUCCESS') {
+        // Force refresh all queries when connecting
+        queryClient.removeQueries({ queryKey: ["/api/integrations", userId] });
+        queryClient.removeQueries({ queryKey: ["/api/activities", userId] });
         queryClient.invalidateQueries({ queryKey: ["/api/integrations", userId] });
+        queryClient.invalidateQueries({ queryKey: ["/api/activities", userId] });
+        
+        // Force a refetch
+        setTimeout(() => {
+          refetch();
+        }, 500);
+        
         toast({
           title: "Integration Connected",
           description: "Successfully connected to your service",
@@ -134,21 +144,31 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
     return () => window.removeEventListener('message', handleMessage);
   }, [queryClient, userId, toast]);
 
+  const API_BASE = process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:5000/api';
+
   // Fetch user's integrations
   const { data: integrations = [], isLoading, refetch } = useQuery<Integration[]>({
     queryKey: ["/api/integrations", userId],
     queryFn: async () => {
-      const response = await fetch(`/api/integrations?userId=${userId}`);
+      const response = await fetch(`${API_BASE}/integrations?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch integrations');
       return response.json();
     },
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
+  
+  // Force refetch when component mounts
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   // Check GitHub configuration
   const { data: githubConfig } = useQuery({
     queryKey: ["/api/integrations/github/test"],
     queryFn: async () => {
-      const response = await fetch('/api/integrations/github/test');
+      const response = await fetch(`${API_BASE}/integrations/github/test`);
       if (!response.ok) throw new Error('Failed to check GitHub config');
       return response.json();
     },
@@ -158,7 +178,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   const { data: googleCalendarConfig } = useQuery({
     queryKey: ["/api/integrations/google-calendar/test"],
     queryFn: async () => {
-      const response = await fetch('/api/integrations/google-calendar/test');
+      const response = await fetch(`${API_BASE}/integrations/google-calendar/test`);
       if (!response.ok) throw new Error('Failed to check Google Calendar config');
       return response.json();
     },
@@ -168,7 +188,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   const { data: notionConfig } = useQuery({
     queryKey: ["/api/integrations/notion/test"],
     queryFn: async () => {
-      const response = await fetch('/api/integrations/notion/test');
+      const response = await fetch(`${API_BASE}/integrations/notion/test`);
       if (!response.ok) throw new Error('Failed to check Notion config');
       return response.json();
     },
@@ -178,7 +198,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   const { data: jiraConfig } = useQuery({
     queryKey: ["/api/integrations/jira/test"],
     queryFn: async () => {
-      const response = await fetch('/api/integrations/jira/test');
+      const response = await fetch(`${API_BASE}/integrations/jira/test`);
       if (!response.ok) throw new Error('Failed to check Jira config');
       return response.json();
     },
@@ -188,7 +208,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   const { data: slackConfig } = useQuery({
     queryKey: ["/api/integrations/slack/test"],
     queryFn: async () => {
-      const response = await fetch('/api/integrations/slack/test');
+      const response = await fetch(`${API_BASE}/integrations/slack/test`);
       if (!response.ok) throw new Error('Failed to check Slack config');
       return response.json();
     },
@@ -197,7 +217,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   // Connect GitHub mutation
   const connectGitHubMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/integrations/github/connect?userId=${userId}`, {
+      const response = await fetch(`${API_BASE}/integrations/github/connect?userId=${userId}`, {
         method: 'GET',
       });
       if (!response.ok) throw new Error('Failed to connect GitHub');
@@ -249,7 +269,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   // Connect Google Calendar mutation
   const connectGoogleCalendarMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/integrations/google-calendar/connect?userId=${userId}`, {
+      const response = await fetch(`${API_BASE}/integrations/google-calendar/connect?userId=${userId}`, {
         method: 'GET',
       });
       if (!response.ok) throw new Error('Failed to connect Google Calendar');
@@ -293,7 +313,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   // Connect Notion mutation
   const connectNotionMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/integrations/notion/connect?userId=${userId}`, {
+      const response = await fetch(`${API_BASE}/integrations/notion/connect?userId=${userId}`, {
         method: 'GET',
       });
       if (!response.ok) throw new Error('Failed to connect Notion');
@@ -337,7 +357,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   // Connect Jira mutation
   const connectJiraMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/integrations/jira/connect?userId=${userId}`, {
+      const response = await fetch(`${API_BASE}/integrations/jira/connect?userId=${userId}`, {
         method: 'GET',
       });
       if (!response.ok) throw new Error('Failed to connect Jira');
@@ -381,7 +401,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   // Connect Slack mutation
   const connectSlackMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/integrations/slack/connect?userId=${userId}`, {
+      const response = await fetch(`${API_BASE}/integrations/slack/connect?userId=${userId}`, {
         method: 'GET',
       });
       if (!response.ok) throw new Error('Failed to connect Slack');
@@ -429,7 +449,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   const syncIntegration = async (integrationId: number) => {
     setSyncingIntegrations(prev => new Set(prev).add(integrationId));
     try {
-      const response = await fetch(`/api/integrations/${integrationId}/sync`, {
+      const response = await fetch(`${API_BASE}/integrations/${integrationId}/sync`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to sync integration');
@@ -458,7 +478,7 @@ export const IntegrationManager = ({ userId }: IntegrationManagerProps) => {
   // Disconnect integration mutation
   const disconnectMutation = useMutation({
     mutationFn: async (integrationId: number) => {
-      const response = await fetch(`/api/integrations/${integrationId}`, {
+      const response = await fetch(`${API_BASE}/integrations/${integrationId}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to disconnect integration');

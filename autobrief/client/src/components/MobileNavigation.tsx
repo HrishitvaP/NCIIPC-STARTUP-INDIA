@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Home, BarChart2, Calendar, Settings, Users, GitBranch, User, HelpCircle, Brain, UserCircle } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useDashboardUrl } from '@/hooks/useDashboardUrl';
 
 export const MobileNavigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const dashboardUrl = useDashboardUrl();
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const navItems = [
-    { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: '/dashboard' },
+    { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: dashboardUrl },
     { name: 'Integrations', icon: <GitBranch className="h-5 w-5" />, path: '/integrations' },
     { name: 'Service Profiles', icon: <UserCircle className="h-5 w-5" />, path: '/profiles' },
     { name: 'AI Insights', icon: <Brain className="h-5 w-5" />, path: '/ai-insights' },

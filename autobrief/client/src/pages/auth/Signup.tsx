@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { UserRole } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Mail, Lock, User, Sparkles, ArrowLeft, CheckCircle, Moon, Sun } from 'lucide-react';
 import { motion } from 'framer-motion';
 import autoBriefLogo from "@/assets/autobrief-logo.png";
@@ -17,7 +19,8 @@ const Signup = () => {
     displayName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'employee' as UserRole
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -83,7 +86,7 @@ const Signup = () => {
     try {
       setError('');
       setLoading(true);
-      await signup(formData.email, formData.password, formData.displayName);
+      await signup(formData.email, formData.password, formData.displayName, formData.role);
       setLocation('/auth/verify-email');
     } catch (error: any) {
       setError(error.message);
@@ -174,6 +177,8 @@ const Signup = () => {
               {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
           </div>
+          
+
           
           <div className="flex items-center justify-center mb-4">
             <img 
@@ -308,6 +313,24 @@ const Signup = () => {
                     <CheckCircle className="absolute right-10 top-3 h-4 w-4 text-green-500" />
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Select Role (Demo)</Label>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(value) => setFormData({...formData, role: value as UserRole})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="project_manager">Project Manager</SelectItem>
+                    <SelectItem value="ceo">CEO</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">For demo purposes only. In a real app, roles would be assigned by administrators.</p>
               </div>
 
               <div className="flex items-center space-x-2">
